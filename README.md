@@ -218,7 +218,27 @@ public class CountEsResource {
 }
 ```
 
+Finally, we give all the wheels a spin by running the client
+```
+mvn -f mcp-client/pom.xml quarkus:dev
+```
 
+And calling its REST endpoint.
+```
+curl localhost:8081/countEs/splendiferous
+```
+
+We can see in `mcp-client` logs that it invoked the AI agent
+```logs
+2026-02-24 16:29:48,754 INFO  [com.redhat.consulting.integration.camel.quarkus.mcp.CountEsResource] (executor-thread-1) Counting 'e's in splendiferous
+2026-02-24 16:29:52,168 INFO  [com.redhat.consulting.integration.camel.quarkus.mcp.CountEsResource] (executor-thread-1) Result=There are 2 letter 'e's in the word splendiferous.
+```
+and in the `mcp-service` logs that the original Camel route executed.
+```
+2026-02-24 16:29:50,571 INFO  [com.redhat.consulting.integration.mcpservice.CountEsRoute:23] (vert.x-worker-thread-1) word=splendiferous
+2026-02-24 16:29:50,571 INFO  [com.redhat.consulting.integration.mcpservice.CountEsRoute:31] (vert.x-worker-thread-1) count=2
+
+```
 
 
 ## Quick Demo Steps
