@@ -102,15 +102,16 @@ mvn -f mcp-service/pom.xml quarkus:dev
 and opening the MCP Server Tools page in the Dev UI console at http://localhost:8080/q/dev-ui/quarkus-mcp-server-http/tools. 
 We can see an entry for the `countEs` tool.
 
-[screenshot call]
+![screenshot of Dev UI with Tool call button](readme/devui_call.png)
 
 When we call it with `splendiferous`, we get the correct response.
 
-[screenshot success]
+![screenshot of Dev UI with success response](readme/devui_success.png)
+
 
 When we provide the wrong argument or type, we get an error response from the MCP Server. Note `isError: true`.
 
-[screenshot argerror]
+![screenshot of Dev UI with arg error](readme/devui_argerror.png)
 
 And if we modify the route to throw an error, we see it pass up just the error message for a response with `isError: true`.
 ```java
@@ -122,7 +123,7 @@ from("direct:countEs")
     ...
 ```
 
-[screenshot camelerror]
+![screenshot of Dev UI with camel error](readme/devui_camelerror.png)
 
 We can also unit test it with the extension `io.quarkiverse.mcp:quarkus-mcp-server-test` which provides the [McpAssured](https://docs.quarkiverse.io/quarkus-mcp-server/dev/guides-testing.html) library. See the link for many more detailed examples. Here we have a test for the happy path and if the wrong type of argument is provided.
 
