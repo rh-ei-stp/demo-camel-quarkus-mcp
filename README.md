@@ -21,6 +21,8 @@ For example, here we can see [granite4:1b](https://www.ibm.com/granite/docs/mode
 The word "splendiferous" contains 4 'e' letters.
 ```
 
+### `mcp-service`
+
 Fortunately, we have an existing Apache Camel route that can accurately count letter 'e's in any word.
 
 ```java
@@ -65,14 +67,14 @@ for the correct answer.
 
 We will make the `countEs` route available as an [Quarkus MCP Server](https://docs.quarkiverse.io/quarkus-mcp-server/dev/index.html) endpoint. 
 
-To reuse a REST DSL route's `direct` endpoint, we must have `restConfiguration().inlineRoutes(false)` (or set `camel.rest.inline-routes = true` in an `application.properties` file) so that it is not automatically swallowed into the `rest()` route and is accessable outside of it.
+*Note: to reuse a REST DSL route's `direct` endpoint, we must have `restConfiguration().inlineRoutes(false)` (or set `camel.rest.inline-routes = true` in an `application.properties` file) so that it is not automatically swallowed into the `rest()` route and is accessable outside of it.*
 
 To add a Quarkus MCP Server to our application, we just need to include the extension `io.quarkiverse.mcp:quarkus-mcp-server-http` and use some of its annotations. Here we create a new class `CountEsTool` with a method `countEs(String word)`. 
 We annotate the method with `@Tool` to make it an MCP tool with the provided name and description, and annotate its parameter with `@ToolArg`.
 These will be reported to an AI agent when it requests a list of available tools from the MCP server. The agent will infer from prompts which tool should be used and with what arguements.
 
 To pass the data into the `countEs` route, we simply `@Inject` a `ProducerTemplate` into the class and use `requestBody()` to send a message into the route. 
-This method throws a `CamelExecutionException`, so we set the method return type to `ToolResponse` instead of just `String` to clearly indicate any error response to the agent with `ToolResponse.error()` and the happy path response with `ToolResponse.success()`.
+This method throws a `CamelExecutionException`, so we set the method return type to `ToolResponse` instead of just `String` to clearly indicate any errors from route execution to the agent with `ToolResponse.error()` and the happy path response with `ToolResponse.success()`.
 
 ```java 
 public class CountEsTool {
@@ -102,15 +104,16 @@ mvn -f mcp-service/pom.xml quarkus:dev
 and opening the MCP Server Tools page in the Dev UI console at http://localhost:8080/q/dev-ui/quarkus-mcp-server-http/tools. 
 We can see an entry for the `countEs` tool.
 
-[screenshot call]
+![screenshot of Dev UI with Tool call button](readme/devui_call.png)
 
 When we call it with `splendiferous`, we get the correct response.
 
-[screenshot success]
+![screenshot of Dev UI with success response](readme/devui_success.png)
+
 
 When we provide the wrong argument or type, we get an error response from the MCP Server. Note `isError: true`.
 
-[screenshot argerror]
+![screenshot of Dev UI with arg error](readme/devui_argerror.png)
 
 And if we modify the route to throw an error, we see it pass up just the error message for a response with `isError: true`.
 ```java
@@ -122,7 +125,7 @@ from("direct:countEs")
     ...
 ```
 
-[screenshot camelerror]
+![screenshot of Dev UI with camel error](readme/devui_camelerror.png)
 
 We can also unit test it with the extension `io.quarkiverse.mcp:quarkus-mcp-server-test` which provides the [McpAssured](https://docs.quarkiverse.io/quarkus-mcp-server/dev/guides-testing.html) library. See the link for many more detailed examples. Here we have a test for the happy path and if the wrong type of argument is provided.
 
@@ -160,9 +163,82 @@ class CountEsMcpToolTest {
 }
 ```
 
-Now that we have our Camel route wrapped with an MCP Server, let's try it out with a real AI agent.
+### `mcp-client`
 
+Now that we have our Camel route wrapped with an MCP Server, let's try it out with a real AI agent. 
 
+For this, we just need to create a new Quarkus project with the extensions `io.quarkiverse.langchain4j:quarkus-langchain4j-mcp` and, for local development, `io.quarkiverse.langchain4j:quarkus-langchain4j-ollama`, as well as `io.quarkus:quarkus-rest-jackson` to provide a REST interface for the client.
+
+We start with creating the agent as a service interface annotated with the Quarkus LangChain4j annotation `@RegisterAiService`. It has a method annotated with `@McpToolBox` to give it access to any MCP servers configured and `@SystemMessage` and `@UserMessage` annotations to prompt the agent with.
+
+```java
+@RegisterAiService
+public interface AiLetterCounterService {
+   @SystemMessage("""
+        Count the number of letter 'e's in the provided word.
+        Limit your response just the number. 
+    """)
+    @McpToolBox
+    public String countEs(@UserMessage String word);
+}
+```
+
+In the `application.properties` file, we configure the Quarkus LangChain4j extension to use a `granite4:1b` model served locally by an Ollama instance started automatically as a Dev Services container. 
+There will be a pause the first time we run the application for it to download and serve the model.
+We also declare an MCP server named `countes` that uses `streamable-http` for its `transport-type` and is reachable locally at `http://localhost:8080/mcp/`.
+Of course, we must set a value for the HTTP port so it doesn't conflict with our `mcp-service` application.
+
+```ini
+quarkus.langchain4j.chat-model.provider=ollama
+quarkus.langchain4j.ollama.chat-model.model-id=granite4:1b
+
+quarkus.langchain4j.mcp.countes.transport-type=streamable-http
+quarkus.langchain4j.mcp.countes.url=http://localhost:8080/mcp/
+
+quarkus.http.port=8081
+```
+
+To drive the AI agent interaction, we provide a `CountEsResource` with the `AiLetterCounterService` `@Inject`ed in.
+
+```java
+@Path("/countEs")
+public class CountEsResource {
+
+    @Inject AiLetterCounterService aiLetterCounterService;
+
+    @GET
+    @Path("/{word}")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String ask(@PathParam("word") String word) {
+        Log.infof("Counting 'e's in %s", word);
+        String result = aiLetterCounterService.countEs(word);
+        Log.infof("Result=%s", result);
+        return result;
+    }
+}
+```
+
+Finally, we give all the wheels a spin by running the client
+```
+mvn -f mcp-client/pom.xml quarkus:dev
+```
+
+And calling its REST endpoint.
+```
+curl localhost:8081/countEs/splendiferous
+```
+
+We can see in `mcp-client` logs that it invoked the AI agent
+```logs
+2026-02-24 16:29:48,754 INFO  [com.redhat.consulting.integration.camel.quarkus.mcp.CountEsResource] (executor-thread-1) Counting 'e's in splendiferous
+2026-02-24 16:29:52,168 INFO  [com.redhat.consulting.integration.camel.quarkus.mcp.CountEsResource] (executor-thread-1) Result=There are 2 letter 'e's in the word splendiferous.
+```
+and in the `mcp-service` logs that the original Camel route executed.
+```
+2026-02-24 16:29:50,571 INFO  [com.redhat.consulting.integration.mcpservice.CountEsRoute:23] (vert.x-worker-thread-1) word=splendiferous
+2026-02-24 16:29:50,571 INFO  [com.redhat.consulting.integration.mcpservice.CountEsRoute:31] (vert.x-worker-thread-1) count=2
+
+```
 
 
 ## Quick Demo Steps
