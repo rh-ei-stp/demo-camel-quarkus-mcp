@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 class CountEsMcpToolTest {
 
     @Test
-    void testCountEndpoint() {
+    void happyPath() {
         McpSseTestClient client = McpAssured.newConnectedSseClient();
         client.when()
             .toolsCall("countEs",
@@ -27,5 +27,19 @@ class CountEsMcpToolTest {
                     assertTrue(text.text().contains("2"));
             })
             .thenAssertResults();
+        client.disconnect();
+    }
+
+    @Test
+    void wrongArgument() {
+        McpSseTestClient client = McpAssured.newConnectedSseClient();
+        client.when()
+            .toolsCall("countEs",
+                Map.of("word", 1),
+                response -> {
+                    assertTrue(response.isError());
+            })
+            .thenAssertResults();
+        client.disconnect();
     }
 }

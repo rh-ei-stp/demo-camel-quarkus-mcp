@@ -16,7 +16,6 @@ public class CountEsRoute extends RouteBuilder {
 
         rest("/camel/countEs")
             .post()
-                .routeId("post")
                 .to("direct:countEs");
 
         from("direct:countEs")
