@@ -24,7 +24,9 @@ public class CountEsRoute extends RouteBuilder {
             .log("word=${body}")
             .process(exchange -> {
                 String body = exchange.getIn().getBody(String.class);
-                String result = Long.toString(List.of(body.split("")).stream().filter(s -> s.equalsIgnoreCase("e")).count());
+                String result = Long.toString(List.of(body.split("")).stream()
+                    .filter(s -> s.equalsIgnoreCase("e"))
+                    .count());
                 exchange.getIn().setBody(result);
             })
             .log("count=${body}");
