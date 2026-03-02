@@ -229,6 +229,24 @@ curl localhost:8081/countEs/splendiferous
 ```
 
 We can see in `mcp-client` logs that it invoked the AI agent which in turn invoked the MCP server.
+
+```mermaid
+sequenceDiagram
+
+participant AI as AiLetterService
+participant LLM as granite4:1b
+participant MCP as countes mcp-service
+
+AI->>LLM: prompts and tool definitions
+LLM->>AI: invoke CountEs tool for "splendiferous"
+
+AI->>MCP: countEs {"word":"splendiferous"}
+MCP->>AI: 2
+
+AI->>LLM: prompts and tool results
+LLM->>AI: "The word 'splendiferous' contains 2 letter 'e's."
+```
+
 ```logs
 [com.redhat.consulting.integration.camel.quarkus.mcp.CountEsResource]  Counting 'e's in splendiferous
 
