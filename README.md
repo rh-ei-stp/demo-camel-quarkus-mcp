@@ -248,18 +248,18 @@ LLM->>AI: "The word 'splendiferous' contains 2 letter 'e's."
 ```
 
 ```logs
-[com.redhat.consulting.integration.camel.quarkus.mcp.CountEsResource]  Counting 'e's in splendiferous
+CountEsResource Counting 'e's in splendiferous
 
 # Initial request to the `countes` MCP server to get a list of available tools
-[io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport]  Request: {"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"roots":{"listChanged":true}},"clientInfo":{"name":"langchain4j","version":"1.0"}}}
-[io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] Response: {"jsonrpc":"2.0","id":0,"result":{"capabilities":{"logging":{},"tools":{"listChanged":true}},"serverInfo":{"name":"mcp-service","version":"1.0-SNAPSHOT","title":"mcp-service"},"protocolVersion":"2025-06-18"}}
-[io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport]  Request: {"jsonrpc":"2.0","method":"notifications/initialized"}
-[io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] Response: 
-[io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport]  Request: {"jsonrpc":"2.0","id":1,"method":"tools/list"}
-[io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] Response: {"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"countEs","description":"Count the number of the letter 'e' in a word.","inputSchema":{"type":"object","properties":{"word":{"type":"string","description":"word"}},"required":["word"]}}]}}
+QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"roots":{"listChanged":true}},"clientInfo":{"name":"langchain4j","version":"1.0"}}}
+QuarkusStreamableHttpMcpTransport Response: {"jsonrpc":"2.0","id":0,"result":{"capabilities":{"logging":{},"tools":{"listChanged":true}},"serverInfo":{"name":"mcp-service","version":"1.0-SNAPSHOT","title":"mcp-service"},"protocolVersion":"2025-06-18"}}
+QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","method":"notifications/initialized"}
+QuarkusStreamableHttpMcpTransport Response: 
+QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":1,"method":"tools/list"}
+QuarkusStreamableHttpMcpTransport Response: {"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"countEs","description":"Count the number of the letter 'e' in a word.","inputSchema":{"type":"object","properties":{"word":{"type":"string","description":"word"}},"required":["word"]}}]}}
 
 # Request to the LLM with the system and user prompts as well as any tool definitions
-[dev.langchain4j.http.client.log.LoggingHttpClient]  HTTP request:
+LoggingHttpClient  HTTP request:
 - method: POST
 - url: http://localhost:46501/api/chat
 - headers: [Content-Type: application/json]
@@ -299,19 +299,19 @@ LLM->>AI: "The word 'splendiferous' contains 2 letter 'e's."
 }
 
 # Response back from LLM to invoke countEs() with input from the user prompt
-[dev.langchain4j.http.client.log.LoggingHttpClient]  HTTP response:
+LoggingHttpClient  HTTP response:
 - status code: 200
 - headers: [Content-Length: 415], [Content-Type: application/json; charset=utf-8], [Date: Wed, 25 Feb 2026 17:59:46 GMT]
 - body: {"model":"granite4:1b","created_at":"2026-02-25T17:59:46.297373224Z","message":{"role":"assistant","content":"","tool_calls":[{"id":"call_ppdpmwdb","function":{"index":0,"name":"countEs","arguments":{"word":"splendiferous"}}}]},"done":true,"done_reason":"stop","total_duration":4003965971,"load_duration":50933161,"prompt_eval_count":201,"prompt_eval_duration":2210268962,"eval_count":23,"eval_duration":1725088361}
 
 # Request from the AI service to the MCP server
-[io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport]  Request: {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"countEs","arguments":{"word":"splendiferous"}}}
+QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"countEs","arguments":{"word":"splendiferous"}}}
 
 # Response back with the calcuated value
-[io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] Response: {"jsonrpc":"2.0","id":2,"result":{"isError":false,"content":[{"text":"2","type":"text"}]}}
+QuarkusStreamableHttpMcpTransportResponse: {"jsonrpc":"2.0","id":2,"result":{"isError":false,"content":[{"text":"2","type":"text"}]}}
 
 # Request to LLM with the results of the MCP tool invocation
-[dev.langchain4j.http.client.log.LoggingHttpClient]  HTTP request:
+LoggingHttpClient  HTTP request:
 - method: POST
 - url: http://localhost:46501/api/chat
 - headers: [Content-Type: application/json]
@@ -364,12 +364,12 @@ LLM->>AI: "The word 'splendiferous' contains 2 letter 'e's."
 }
 
 # Response back from the LLM
-[dev.langchain4j.http.client.log.LoggingHttpClient]  HTTP response:
+LoggingHttpClient  HTTP response:
 - status code: 200
 - headers: [Content-Length: 347], [Content-Type: application/json; charset=utf-8], [Date: Wed, 25 Feb 2026 17:59:48 GMT]
 - body: {"model":"granite4:1b","created_at":"2026-02-25T17:59:48.180014875Z","message":{"role":"assistant","content":"The word 'splendiferous' contains 2 letter 'e's."},"done":true,"done_reason":"stop","total_duration":1835345155,"load_duration":66203703,"prompt_eval_count":238,"prompt_eval_duration":347968490,"eval_count":17,"eval_duration":1406561825}
 
-[com.redhat.consulting.integration.camel.quarkus.mcp.CountEsResource]  Result=The word 'splendiferous' contains 2 letter 'e's.
+CountEsResource  Result=The word 'splendiferous' contains 2 letter 'e's.
 ```
 And we can see in the `mcp-service` logs that the original Camel route executed.
 ```
