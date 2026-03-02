@@ -474,16 +474,21 @@ curl localhost:8082/countEs/splendiferous
 
 and see the MCP server invocation in the `mcp-client-camel` logs:
 ```
-2026-02-25 16:44:18,771 INFO  [com.redhat.consulting.integration.camel.quarkus.mcp.client.LetterCounterRoute:15] (vert.x-worker-thread-14) word=splendiferous
-2026-02-25 16:44:18,775 INFO  [io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] (vert.x-worker-thread-14) Request: {"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"roots":{"listChanged":true}},"clientInfo":{"name":"langchain4j","version":"1.0"}}}
-2026-02-25 16:44:18,780 INFO  [io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] Response: {"jsonrpc":"2.0","id":0,"result":{"capabilities":{"logging":{},"tools":{"listChanged":true}},"serverInfo":{"name":"mcp-service","version":"1.0-SNAPSHOT","title":"mcp-service"},"protocolVersion":"2025-11-25"}}
-2026-02-25 16:44:18,781 INFO  [io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport]  Request: {"jsonrpc":"2.0","method":"notifications/initialized"}
-2026-02-25 16:44:18,782 INFO  [io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] Response: 
-2026-02-25 16:44:18,783 INFO  [io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] (vert.x-worker-thread-14) Request: {"jsonrpc":"2.0","id":1,"method":"tools/list"}
-2026-02-25 16:44:18,786 INFO  [io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] Response: {"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"countEs","description":"Count the number of the letter 'e' in a word.","inputSchema":{"type":"object","properties":{"word":{"type":"string","description":"word"}},"required":["word"]}}]}}
-2026-02-25 16:44:26,399 INFO  [io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] (vert.x-worker-thread-14) Request: {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"countEs","arguments":{"word":"splendiferous"}}}
-2026-02-25 16:44:26,404 INFO  [io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport] Response: {"jsonrpc":"2.0","id":2,"result":{"isError":false,"content":[{"text":"2","type":"text"}]}}
-2026-02-25 16:44:28,062 INFO  [com.redhat.consulting.integration.camel.quarkus.mcp.client.LetterCounterRoute:22] (vert.x-worker-thread-14) count=There are 2 'e's in the word splendiferous.
+LetterCounterRoute:15 word=splendiferous
+
+# Initial request to the `countes` MCP server to get a list of available tools
+QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"roots":{"listChanged":true}},"clientInfo":{"name":"langchain4j","version":"1.0"}}}
+QuarkusStreamableHttpMcpTransport Response: {"jsonrpc":"2.0","id":0,"result":{"capabilities":{"logging":{},"tools":{"listChanged":true}},"serverInfo":{"name":"mcp-service","version":"1.0-SNAPSHOT","title":"mcp-service"},"protocolVersion":"2025-11-25"}}
+QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","method":"notifications/initialized"}
+QuarkusStreamableHttpMcpTransport Response: 
+QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":1,"method":"tools/list"}
+QuarkusStreamableHttpMcpTransport Response: {"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"countEs","description":"Count the number of the letter 'e' in a word.","inputSchema":{"type":"object","properties":{"word":{"type":"string","description":"word"}},"required":["word"]}}]}}
+
+# Request from the langchain4j component to the MCP server
+QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"countEs","arguments":{"word":"splendiferous"}}}
+QuarkusStreamableHttpMcpTransport Response: {"jsonrpc":"2.0","id":2,"result":{"isError":false,"content":[{"text":"2","type":"text"}]}}
+
+LetterCounterRoute:22 count=There are 2 'e's in the word splendiferous.
 ```
 
 ## Quick Demo Steps
