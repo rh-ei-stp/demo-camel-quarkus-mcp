@@ -3,23 +3,27 @@ package com.redhat.consulting.integration.camel.quarkus.mcp.client;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.langchain4j.agent.api.Headers;
 
-public class LetterCounterRoute extends RouteBuilder{
+import jakarta.ws.rs.core.MediaType;
+
+public class OurAiRoute extends RouteBuilder{
 
     @Override
     public void configure() throws Exception {
-        rest("/countEs")
-            .get("/{word}")
+        rest("/camel/ai")
+            .post()
+                .consumes(MediaType.TEXT_PLAIN)
+                .produces(MediaType.TEXT_PLAIN)
             .to("direct:agent");
 
         from("direct:agent")
-            .log("word=${header.word}")
+            .log("prompt=${body}")
             .setHeader(Headers.SYSTEM_MESSAGE).simple("""
-                Count the number of letter 'e's in the provided word.
-                Limit your response just the number. 
+                You are a helpful agent. 
+                Please provide conside answers to user questions.
                 """)
-            .setBody().header("word")
+            .convertBodyTo(String.class)
             .to("langchain4j-agent:letterCounterAgent")
-            .log("count=${body}")
+            .log("response=${body}")
             ;
     }
     

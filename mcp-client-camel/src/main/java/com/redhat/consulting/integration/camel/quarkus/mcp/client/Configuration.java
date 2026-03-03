@@ -6,9 +6,9 @@ import org.apache.camel.component.langchain4j.agent.api.AgentWithoutMemory;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.model.chat.ChatModel;
 import io.quarkiverse.langchain4j.mcp.runtime.McpClientName;
+import io.smallrye.common.annotation.Identifier;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.inject.Named;
 
 @ApplicationScoped
 public class Configuration {
@@ -18,8 +18,8 @@ public class Configuration {
     @McpClientName("countes")
     McpClient countEsClient;
 
-    @Named("letterCounterAgent")
-    Agent letterCounterAgent() {
+    @Identifier("ourAgent")
+    Agent ourAgent() {
         // Create agent configuration
         AgentConfiguration configuration = new AgentConfiguration()
                 .withChatModel(chatModel)
