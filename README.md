@@ -173,13 +173,12 @@ We start with creating the agent as a service interface annotated with the Quark
 
 ```java
 @RegisterAiService
-public interface AiLetterCounterService {
-   @SystemMessage("""
-        Count the number of letter 'e's in the provided word.
-        Limit your response just the number. 
+public interface OurAiService {
+    @SystemMessage("""
+        You are helpful agent. Please provide conside answers to user questions.
     """)
     @McpToolBox
-    public String countEs(@UserMessage String word);
+    public String ask(@UserMessage String prompt);
 }
 ```
 
@@ -201,20 +200,21 @@ quarkus.http.port=8081
 To drive the AI agent interaction, we provide a `CountEsResource` with the `AiLetterCounterService` `@Inject`ed in.
 
 ```java
-@Path("/countEs")
-public class CountEsResource {
+@Path("/ai")
+public class OurAiResource {
 
-    @Inject AiLetterCounterService aiLetterCounterService;
+    @Inject OurAiService llmService;
 
-    @GET
-    @Path("/{word}")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.TEXT_PLAIN)
-    public String ask(@PathParam("word") String word) {
-        Log.infof("Counting 'e's in %s", word);
-        String result = aiLetterCounterService.countEs(word);
-        Log.infof("Result=%s", result);
-        return result;
+    public String ask(String prompt) {
+        Log.infof("prompt=%s", prompt);
+        String aiResponse = llmService.ask(prompt);
+        Log.infof("aiReponse=%s", aiResponse);
+        return aiResponse;
     }
+
 }
 ```
 
@@ -223,9 +223,9 @@ Finally, we give all the wheels a spin by running the client
 mvn -f mcp-client/pom.xml quarkus:dev
 ```
 
-and calling its REST endpoint.
+and calling its REST endpoint with our prompt
 ```
-curl localhost:8081/countEs/splendiferous
+curl -X POST localhost:8081/ai -H "Content-Type: text/plain" -d "How many letter 'e's are in the word splendiferous?"
 ```
 
 We can see in `mcp-client` logs that it invoked the AI agent which in turn invoked the MCP server.
