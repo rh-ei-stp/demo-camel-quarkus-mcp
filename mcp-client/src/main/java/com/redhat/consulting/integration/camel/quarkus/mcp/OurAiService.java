@@ -6,11 +6,10 @@ import io.quarkiverse.langchain4j.RegisterAiService;
 import io.quarkiverse.langchain4j.mcp.runtime.McpToolBox;
 
 @RegisterAiService
-public interface AiLetterCounterService {
+public interface OurAiService {
     @SystemMessage("""
-        Count the number of letter 'e's in the provided word.
-        Limit your response just the number. 
+        You are helpful agent. Please provide conside answers to user questions.
     """)
     @McpToolBox
-    public String countEs(@UserMessage String word);
+    public String ask(@UserMessage String prompt);
 }
