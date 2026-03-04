@@ -420,8 +420,8 @@ public class Configuration {
     @McpClientName("countes")
     McpClient countEsClient;
 
-    @Identifier("letterCounterAgent")
-    Agent letterCounterAgent() {
+    @Identifier("ourAgent")
+    Agent ourAgent() {
         // Create agent configuration
         AgentConfiguration configuration = new AgentConfiguration()
                 .withChatModel(chatModel)
@@ -434,35 +434,37 @@ public class Configuration {
 }
 ```
 
-Now, we can create the `LetterCounterRoute`. 
+Now, we can create `OurAiRoute`. 
 
 ```java
-public class LetterCounterRoute extends RouteBuilder{
+public class OurAiRoute extends RouteBuilder{
 
     @Override
     public void configure() throws Exception {
-        rest("/countEs")
-            .get("/{word}")
+        rest("/camel/ai")
+            .post()
+                .consumes(MediaType.TEXT_PLAIN)
+                .produces(MediaType.TEXT_PLAIN)
             .to("direct:agent");
 
         from("direct:agent")
-            .log("word=${header.word}")
+            .log("prompt=${body}")
             .setHeader(Headers.SYSTEM_MESSAGE).simple("""
-                Count the number of letter 'e's in the provided word.
-                Limit your response just the number. 
+                You are a helpful agent. 
+                Please provide concise answers to user questions.
                 """)
-            .setBody().header("word")
-            .to("langchain4j-agent:letterCounterAgent")
-            .log("count=${body}")
+            .convertBodyTo(String.class)
+            .to("langchain4j-agent:ourAgent")
+            .log("response=${body}")
             ;
     }
     
 }
 ```
 
-The REST DSL method will create a path at `/countEs/{word}` and pass the `word` to the `direct:agent` route.
-We use the `SYSTEM_MESSAGE` header to set the system message and pull the `word` from a header into the body as the user message or TextContent.
-The `langchain4j-agent` component uses the `letterCounterAgent` we configured to call the LLM and forward its tool requests to the MCP server.
+The REST DSL method will create a path at `/camel/ai` and pass the `POST`ed user input to the `direct:agent` route.
+We use the `SYSTEM_MESSAGE` (`CamelLangChain4jAgentSystemMessage`) header to set the system message and convert the body into the user message.
+The `langchain4j-agent` component uses the `OurAgent` `Agent` object we configured to call the LLM and forward its tool requests to the MCP server.
 
 Tying it all together, we boot up the application with
 
@@ -472,26 +474,133 @@ mvn -f mcp-client-camel/pom.xml quarkus:dev
 
 And call the route with 
 ```
-curl localhost:8082/countEs/splendiferous
+curl -X POST localhost:8082/camel/ai -H "Content-Type: text/plain" -d "How many letter 'e's are in the word splendiferous?"
 ```
 
 and see the MCP server invocation in the `mcp-client-camel` logs:
 ```
-LetterCounterRoute:15 word=splendiferous
+OurAiRoute:19] prompt=How many letter 'e's are in the word splendiferous?
 
 # Initial request to the `countes` MCP server to get a list of available tools
-QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"roots":{"listChanged":true}},"clientInfo":{"name":"langchain4j","version":"1.0"}}}
-QuarkusStreamableHttpMcpTransport Response: {"jsonrpc":"2.0","id":0,"result":{"capabilities":{"logging":{},"tools":{"listChanged":true}},"serverInfo":{"name":"mcp-service","version":"1.0-SNAPSHOT","title":"mcp-service"},"protocolVersion":"2025-11-25"}}
-QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","method":"notifications/initialized"}
-QuarkusStreamableHttpMcpTransport Response: 
-QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":1,"method":"tools/list"}
-QuarkusStreamableHttpMcpTransport Response: {"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"countEs","description":"Count the number of the letter 'e' in a word.","inputSchema":{"type":"object","properties":{"word":{"type":"string","description":"word"}},"required":["word"]}}]}}
+QuarkusStreamableHttpMcpTransport] Request: {"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"roots":{"listChanged":true}},"clientInfo":{"name":"langchain4j","version":"1.0"}}}
+QuarkusStreamableHttpMcpTransport] (vert.x-eventloop-thread-1) Response: {"jsonrpc":"2.0","id":0,"result":{"capabilities":{"logging":{},"tools":{"listChanged":true}},"serverInfo":{"name":"mcp-service","version":"1.0-SNAPSHOT","title":"mcp-service"},"protocolVersion":"2025-11-25"}}
+QuarkusStreamableHttpMcpTransport] (executor-thread-1) Request: {"jsonrpc":"2.0","method":"notifications/initialized"}
+QuarkusStreamableHttpMcpTransport] (vert.x-eventloop-thread-1) Response: 
+QuarkusStreamableHttpMcpTransport] Request: {"jsonrpc":"2.0","id":1,"method":"tools/list"}
+QuarkusStreamableHttpMcpTransport] (vert.x-eventloop-thread-1) Response: {"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"countEs","description":"Count the number of the letter 'e' in a word.","inputSchema":{"type":"object","properties":{"word":{"type":"string","description":"word"}},"required":["word"]}}]}}
 
-# Request from the langchain4j component to the MCP server
-QuarkusStreamableHttpMcpTransport Request: {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"countEs","arguments":{"word":"splendiferous"}}}
-QuarkusStreamableHttpMcpTransport Response: {"jsonrpc":"2.0","id":2,"result":{"isError":false,"content":[{"text":"2","type":"text"}]}}
+# Request to the LLM with the system and user prompts as well as any tool definitions
+LoggingHttpClient] HTTP request:
+- method: POST
+- url: http://localhost:34023/api/chat
+- headers: [Content-Type: application/json]
+- body: {
+  "model" : "granite4:1b",
+  "messages" : [ {
+    "role" : "system",
+    "content" : "You are a helpful agent.\nPlease provide consise answers to user questions."
+  }, {
+    "role" : "user",
+    "content" : "How many letter 'e's are in the word splendiferous?"
+  } ],
+  "options" : {
+    "temperature" : 0.8,
+    "top_k" : 40,
+    "top_p" : 0.9,
+    "stop" : [ ]
+  },
+  "stream" : false,
+  "tools" : [ {
+    "type" : "function",
+    "function" : {
+      "name" : "countEs",
+      "description" : "Count the number of the letter 'e' in a word.",
+      "parameters" : {
+        "type" : "object",
+        "properties" : {
+          "word" : {
+            "type" : "string",
+            "description" : "word"
+          }
+        },
+        "required" : [ "word" ]
+      }
+    }
+  } ]
+}
 
-LetterCounterRoute:22 count=There are 2 'e's in the word splendiferous.
+# Response back from LLM to invoke countEs() with input from the user prompt
+LoggingHttpClient] HTTP response:
+- status code: 200
+- headers: [Content-Length: 415], [Content-Type: application/json; charset=utf-8], [Date: Wed, 04 Mar 2026 23:17:11 GMT]
+- body: {"model":"granite4:1b","created_at":"2026-03-04T23:17:11.826967426Z","message":{"role":"assistant","content":"","tool_calls":[{"id":"call_8f8itwjl","function":{"index":0,"name":"countEs","arguments":{"word":"splendiferous"}}}]},"done":true,"done_reason":"stop","total_duration":3839070021,"load_duration":47457804,"prompt_eval_count":205,"prompt_eval_duration":2175590460,"eval_count":23,"eval_duration":1599124119}
+
+# Request from the AI service to the MCP server
+QuarkusStreamableHttpMcpTransport] Request: {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"countEs","arguments":{"word":"splendiferous"}}}
+
+# Response back with the calcuated value
+QuarkusStreamableHttpMcpTransport] (vert.x-eventloop-thread-1) Response: {"jsonrpc":"2.0","id":2,"result":{"isError":false,"content":[{"text":"2","type":"text"}]}}
+
+# Request to LLM with the results of the MCP tool invocation
+LoggingHttpClient] HTTP request:
+- method: POST
+- url: http://localhost:34023/api/chat
+- headers: [Content-Type: application/json]
+- body: {
+  "model" : "granite4:1b",
+  "messages" : [ {
+    "role" : "system",
+    "content" : "You are a helpful agent.\nPlease provide consise answers to user questions."
+  }, {
+    "role" : "user",
+    "content" : "How many letter 'e's are in the word splendiferous?"
+  }, {
+    "role" : "assistant",
+    "tool_calls" : [ {
+      "function" : {
+        "name" : "countEs",
+        "arguments" : {
+          "word" : "splendiferous"
+        }
+      }
+    } ]
+  }, {
+    "role" : "tool",
+    "content" : "2"
+  } ],
+  "options" : {
+    "temperature" : 0.8,
+    "top_k" : 40,
+    "top_p" : 0.9,
+    "stop" : [ ]
+  },
+  "stream" : false,
+  "tools" : [ {
+    "type" : "function",
+    "function" : {
+      "name" : "countEs",
+      "description" : "Count the number of the letter 'e' in a word.",
+      "parameters" : {
+        "type" : "object",
+        "properties" : {
+          "word" : {
+            "type" : "string",
+            "description" : "word"
+          }
+        },
+        "required" : [ "word" ]
+      }
+    }
+  } ]
+}
+
+# Response back from the LLM
+LoggingHttpClient] HTTP response:
+- status code: 200
+- headers: [Content-Length: 349], [Content-Type: application/json; charset=utf-8], [Date: Wed, 04 Mar 2026 23:17:13 GMT]
+- body: {"model":"granite4:1b","created_at":"2026-03-04T23:17:13.406526332Z","message":{"role":"assistant","content":"There are 2 letters 'e' in the word splendiferous."},"done":true,"done_reason":"stop","total_duration":1568733723,"load_duration":50143091,"prompt_eval_count":242,"prompt_eval_duration":279185523,"eval_count":17,"eval_duration":1226845047}
+
+OurAiRoute:26] response=There are 2 letters 'e' in the word splendiferous.
 ```
 
 ## Quick Demo Steps
