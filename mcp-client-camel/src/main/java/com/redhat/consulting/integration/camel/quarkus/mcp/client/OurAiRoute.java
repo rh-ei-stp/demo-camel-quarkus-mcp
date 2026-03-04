@@ -19,7 +19,7 @@ public class OurAiRoute extends RouteBuilder{
             .log("prompt=${body}")
             .setHeader(Headers.SYSTEM_MESSAGE).simple("""
                 You are a helpful agent. 
-                Please provide conside answers to user questions.
+                Please provide consise answers to user questions.
                 """)
             .convertBodyTo(String.class)
             .to("langchain4j-agent:letterCounterAgent")

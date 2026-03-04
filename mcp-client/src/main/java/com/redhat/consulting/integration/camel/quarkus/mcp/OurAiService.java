@@ -8,7 +8,7 @@ import io.quarkiverse.langchain4j.mcp.runtime.McpToolBox;
 @RegisterAiService
 public interface OurAiService {
     @SystemMessage("""
-        You are helpful agent. Please provide conside answers to user questions.
+        You are helpful agent. Please provide concise answers to user questions.
     """)
     @McpToolBox
     public String ask(@UserMessage String prompt);
