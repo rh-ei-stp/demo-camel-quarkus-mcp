@@ -13,25 +13,28 @@ import static org.hamcrest.CoreMatchers.containsString;
 
 @QuarkusTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class CountEsResourceTest {
+class AiResourceTest {
 
     @InjectMock
-    AiLetterCounterService aiService;
+    OurAiService aiService;
 
     @BeforeAll
     public void setup() {
         Mockito
-            .when(aiService.countEs("splendiferous"))
+            .when(aiService.ask("How many letter 'e's are in splendiferous?"))
             .thenReturn("There are 2 letter 'e's in the word splendiferous.");
     }
 
     @Test
     void testCountEndpoint() {
         given()
-          .when().get("/countEs/splendiferous")
-          .then()
-             .statusCode(200)
-             .body(containsString("2"));
+            .body("How many letter 'e's are in splendiferous?")
+        .when()
+            .post("/ai")
+        .then()
+            .log().ifValidationFails()
+            .statusCode(200)
+            .body(containsString("2"));
     }
 
 }
